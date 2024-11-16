@@ -1,0 +1,69 @@
+@startuml Контекстная диаграмма
+title "Диаграмма компонентов системы бронирования отеля"
+
+!define DEVICONS1 https://raw.githubusercontent.com/tupadr3/plantuml-icon-font-sprites/master/devicons
+!define DEVICONS2 https://raw.githubusercontent.com/tupadr3/plantuml-icon-font-sprites/master/devicons2
+
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+!$ICONURL = "https://raw.githubusercontent.com/tupadr3/plantuml-icon-font-sprites/v3.0.0/icons"
+!include $ICONURL/common.puml
+!include DEVICONS2/postgresql.puml
+
+Person(hotel, "Отель", "Управление бронированиями и отзывами")
+Person(admin, "Администратор", "Модерация отзывов и управление системой")
+Person(guest, "Гость", "Поиск и бронирование отелей")
+
+System_Boundary(HotelSettings_container, "Настройки отеля") {
+    ' Сервисы
+    Container(extranet, "Личный кабинет отеля", "C#, ReactTS", "Веб приложение, отображающее внутренние продукты")
+    Container(guestProfile, "Личный профиль пользователя", "C#, ReactTS", "Веб приложение, занимающееся личными данными пользователя, историей и бронированием")
+    Container(bookingSystem, "Система бронирования отелей", "C#, ReactTS", "Централизованная система для поиска и бронирования отелей")
+    Container(analytics, "Сервис аналитики", "C#, ReactTS", "Централизованнная система для обработки и сбора аналитики")
+    Container(reviews, "Сервис отзывов", "C#, ReactTS", "Система размещения, визуалиации и валидации отзывов")
+
+    Rel(hotel, extranet, "Посещает", "HTTP")
+    Rel(admin, extranet, "Посещает", "HTTP")
+    Rel(guest, guestProfile, "Посещает", "HTTP")
+
+    Rel(extranet, bookingSystem, "API вызовы", "REST API")
+    Rel(extranet, reviews, "API вызовы", "REST API")
+    Rel(extranet, analytics, "API вызовы", "REST API")
+    Rel(guestProfile, bookingSystem, "API вызовы", "REST API")
+    
+    ' Подписки
+    Container(subscriptionManager, "Система управления подписок", "C#", "Управляет подписками отеля, проводит оплаты и отправляет письма")
+    Rel(extranet, subscriptionManager, "API вызовы", "REST API")
+    Rel(reviews, subscriptionManager, "API вызовы", "REST API")
+    Rel(analytics, subscriptionManager, "API вызовы", "REST API")
+
+    ' Хранение данных
+	ContainerDb(postgres, "Database", "PostgreSQL", "Хранит данные", $sprite="postgresql")
+    Rel_D(extranet, postgres, "Читает/пишет данные", "SQL/TCP")
+    Rel_D(bookingSystem, postgres, "Читает/пишет данные", "SQL/TCP")
+    Rel_D(reviews, postgres, "Читает/пишет данные", "SQL/TCP")
+    Rel_D(analytics, postgres, "Читает/пишет данные", "SQL/TCP")
+    Rel_D(guestProfile, postgres, "Читает/пишет данные", "SQL/TCP")
+
+	ContainerDb(redis, "Database", "Redis", "Кеширует данные", $sprite="redis")
+    Rel_D(analytics, redis, "Читает/пишет данные", "SQL/TCP")
+    Rel_D(bookingSystem, redis, "Читает/пишет данные", "SQL/TCP")
+
+    ' Шина событий
+    ContainerDb(rabbit, "Message bus", "RabbitMQ", "Пушит уведомления о происхождении событий")
+    Rel(analytics, rabbit, "Использует")
+    Rel(bookingSystem, rabbit, "Использует")
+}
+
+' Внешние сервисы   
+System_Ext(paymentAPI, "API платежных систем", "Обработка платежей")
+System_Ext(notificationService, "Сервис уведомлений", "Отправка уведомлений пользователям")
+System_Ext(externalAPI, "API внешних сервисов", "Интеграция с картами и другими сервисами")
+
+Rel(extranet, externalAPI, "API вызовы", "REST API")
+Rel(guestProfile, externalAPI, "API вызовы", "REST API")
+Rel(bookingSystem, paymentAPI, "API вызовы", "REST API")
+Rel(bookingSystem, notificationService, "API вызовы", "REST API")
+Rel(subscriptionManager, notificationService, "API вызовы", "REST API")
+Rel(subscriptionManager, paymentAPI, "API вызовы", "REST API")
+
+@enduml

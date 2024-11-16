@@ -1,0 +1,59 @@
+@startuml
+
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+!define DEVICONS1 https://raw.githubusercontent.com/tupadr3/plantuml-icon-font-sprites/master/devicons
+!define DEVICONS2 https://raw.githubusercontent.com/tupadr3/plantuml-icon-font-sprites/master/devicons2
+
+!include DEVICONS1/redis.puml
+!include DEVICONS2/csharp.puml
+!include DEVICONS2/postgresql.puml
+
+Container(bookingService, "API Приложение", "C#", "Предоставляет функционал для бронирования отелей через JSON/HTTPS API", $sprite="csharp")
+
+' Внещние сервисы
+System_Ext(paymentAPI, "Система обработки платежей", "API платежных систем", "Обработка платежей")
+System_Ext(notificationService, "Сервис уведомлений", "Отправка уведомлений пользователям")
+
+' Данные
+ContainerDb(postgres, "Database", "PostgreSQL", "Хранит информацию о пользователях, бронированиях, отзывах и другую информацию", $sprite="postgresql")
+ContainerDb(redis, "Database", "Redis", "Кеширует информацию о поисковых операциях", $sprite="redis")
+ContainerDb(rabbit, "MEssage bus", "RabbitMQ", "Пушит уведомления о происхождении событий")
+
+Container_Boundary(bookingService_container, "Сервис Бронирования") {
+    ' Вход в API
+    Component(bookingController, "Контроллер Бронирования", "C#", "Позволяет пользователям управлять бронированиями")
+    Rel_D(bookingService, bookingController, "Делает API запросы к контроллеру бронирований", "JSON/HTTPS")
+
+    ' Обработчики API
+    Component(bookingEngine, "Модуль Бронирования", "C#", "Обрабатывает процесс бронирования, поиск доступности, создание бронирований и т.д.")
+    Component(reservationManager, "Менеджер Бронирований", "C#", "Управляет существующими бронированиями: изменения, отмены, подтверждения")
+    Rel_D(bookingController, bookingEngine, "Использует")
+    Rel_D(bookingController, reservationManager, "Использует")
+
+    ' Обменданными данными между сервисами компании
+    Rel(bookingEngine, rabbit, "Использует")
+    Rel(reservationManager, rabbit, "Использует")
+
+    ' БД
+    Rel_L(bookingEngine, postgres, "Читает из и записывает в", "SQL/TCP")
+    Rel_L(bookingEngine, redis, "Читает из и записывает в", "SQL/TCP")
+
+    Rel_L(reservationManager, postgres, "Читает из и записывает в", "SQL/TCP")
+    Rel_L(reservationManager, redis, "Читает из и записывает в", "SQL/TCP")
+
+    ' Уведомление отеля и пользователя
+    Component(notificationServiceFacade, "Компонент уведомлений", "C#", "Отправляет уведомления по email/websockets")
+    Rel(notificationServiceFacade, notificationService, "Использует")
+    Rel(bookingEngine, notificationServiceFacade, "Использует")
+    Rel(reservationManager, notificationServiceFacade, "Использует")
+
+    ' Деньги
+    Component(paymentAPIFacade, "Компонент оплаты", "C#", "Предоставляет удобную с API платежек")
+    Rel(paymentAPIFacade, paymentAPI, "Использует")
+    Rel(bookingEngine, paymentAPIFacade, "Использует")
+    Rel(reservationManager, paymentAPIFacade, "Использует")
+}
+
+@enduml
