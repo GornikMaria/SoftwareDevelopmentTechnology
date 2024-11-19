@@ -29,12 +29,12 @@ Container_Boundary(bookingService_container, "Сервис Бронирован�
     ' Обработчики API
     Component(bookingEngine, "Модуль Бронирования", "C#", "Обрабатывает процесс бронирования, поиск доступности, создание бронирований и т.д.")
     Component(reservationManager, "Менеджер Бронирований", "C#", "Управляет существующими бронированиями: изменения, отмены, подтверждения")
-    Rel_D(bookingController, bookingEngine, "Использует")
-    Rel_D(bookingController, reservationManager, "Использует")
+    Rel_D(bookingController, bookingEngine, "Обрабатывает запросы бронирования")
+    Rel_D(bookingController, reservationManager, "Управляет бронированиями")
 
     ' Обменданными данными между сервисами компании
-    Rel(bookingEngine, rabbit, "Использует")
-    Rel(reservationManager, rabbit, "Использует")
+    Rel(bookingEngine, rabbit, "Публикует события бронирования")
+    Rel(reservationManager, rabbit, "Публикует события управления бронированиями")
 
     ' БД
     Rel_L(bookingEngine, postgres, "Читает из и записывает в", "SQL/TCP")
@@ -45,15 +45,15 @@ Container_Boundary(bookingService_container, "Сервис Бронирован�
 
     ' Уведомление отеля и пользователя
     Component(notificationServiceFacade, "Компонент уведомлений", "C#", "Отправляет уведомления по email/websockets")
-    Rel(notificationServiceFacade, notificationService, "Использует")
-    Rel(bookingEngine, notificationServiceFacade, "Использует")
-    Rel(reservationManager, notificationServiceFacade, "Использует")
+    Rel(notificationServiceFacade, notificationService, "Отправляет уведомления")
+    Rel(bookingEngine, notificationServiceFacade, "Инициирует уведомления")
+    Rel(reservationManager, notificationServiceFacade, "Инициирует уведомления")
 
     ' Деньги
     Component(paymentAPIFacade, "Компонент оплаты", "C#", "Предоставляет удобную с API платежек")
-    Rel(paymentAPIFacade, paymentAPI, "Использует")
-    Rel(bookingEngine, paymentAPIFacade, "Использует")
-    Rel(reservationManager, paymentAPIFacade, "Использует")
+    Rel(paymentAPIFacade, paymentAPI, "Обрабатывает платежи")
+    Rel(bookingEngine, paymentAPIFacade, "Инициирует платежи")
+    Rel(reservationManager, paymentAPIFacade, "Управляет возвратами и отменами")
 }
 
 @enduml
