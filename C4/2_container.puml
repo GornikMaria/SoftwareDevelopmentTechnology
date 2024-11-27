@@ -36,15 +36,25 @@ System_Boundary(HotelSettings_container, "Настройки отеля") {
     Rel(reviews, subscriptionManager, "API вызовы", "REST API")
     Rel(analytics, subscriptionManager, "API вызовы", "REST API")
 
+    ' Сервис обработки платежей
+    Container(paymentService, "Сервис обработки платежей", "C#", "Обрабатывает платежи и взаимодействует с API платежных систем")
+    Rel(subscriptionManager, paymentService, "API вызовы", "REST API")
+    Rel(bookingSystem, paymentService, "API вызовы", "REST API")
+
+    ' Сервис уведомлений
+    Container(notificationServiceHandler, "Сервис обработки уведомлений", "C#", "Обрабатывает уведомления и взаимодействует с внешним API уведомлений")
+    Rel(subscriptionManager, notificationServiceHandler, "Отправляет уведомления", "REST API")
+    Rel(bookingSystem, notificationServiceHandler, "Отправляет уведомления", "REST API")
+
     ' Хранение данных
-	ContainerDb(postgres, "Database", "PostgreSQL", "Хранит данные", $sprite="postgresql")
+    ContainerDb(postgres, "Database", "PostgreSQL", "Хранит данные", $sprite="postgresql")
     Rel_D(extranet, postgres, "Читает/пишет данные", "SQL/TCP")
     Rel_D(bookingSystem, postgres, "Читает/пишет данные", "SQL/TCP")
     Rel_D(reviews, postgres, "Читает/пишет данные", "SQL/TCP")
     Rel_D(analytics, postgres, "Читает/пишет данные", "SQL/TCP")
     Rel_D(guestProfile, postgres, "Читает/пишет данные", "SQL/TCP")
 
-	ContainerDb(redis, "Database", "Redis", "Кеширует данные", $sprite="redis")
+    ContainerDb(redis, "Database", "Redis", "Кеширует данные", $sprite="redis")
     Rel_D(analytics, redis, "Читает/пишет данные", "SQL/TCP")
     Rel_D(bookingSystem, redis, "Читает/пишет данные", "SQL/TCP")
 
@@ -61,9 +71,7 @@ System_Ext(externalAPI, "API внешних сервисов", "Интеграц
 
 Rel(extranet, externalAPI, "API вызовы", "REST API")
 Rel(guestProfile, externalAPI, "API вызовы", "REST API")
-Rel(bookingSystem, paymentAPI, "API вызовы", "REST API")
-Rel(bookingSystem, notificationService, "API вызовы", "REST API")
-Rel(subscriptionManager, notificationService, "API вызовы", "REST API")
-Rel(subscriptionManager, paymentAPI, "API вызовы", "REST API")
+Rel(paymentService, paymentAPI, "API вызовы", "REST API")
+Rel(notificationServiceHandler, notificationService, "API вызовы", "REST API")
 
 @enduml
