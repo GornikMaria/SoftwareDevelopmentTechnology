@@ -15,11 +15,12 @@ Person(guest, "Гость", "Поиск и бронирование отелей
 
 System_Boundary(HotelSettings_container, "Настройки отеля") {
     ' Сервисы
-    Container(extranet, "Личный кабинет отеля", "C#, ReactTS", "Веб приложение, отображающее внутренние продукты")
-    Container(guestProfile, "Личный профиль пользователя", "C#, ReactTS", "Веб приложение, занимающееся личными данными пользователя, историей и бронированием")
-    Container(bookingSystem, "Система бронирования отелей", "C#, ReactTS", "Централизованная система для поиска и бронирования отелей")
-    Container(analytics, "Сервис аналитики", "C#, ReactTS", "Централизованнная система для обработки и сбора аналитики")
-    Container(reviews, "Сервис отзывов", "C#, ReactTS", "Система размещения, визуалиации и валидации отзывов")
+    Container(extranet, "Личный кабинет отеля", "ReactTS", "Веб приложение, отображающее внутренние продукты")
+    Container(guestProfile, "Личный профиль пользователя", "ReactTS", "Веб приложение, занимающееся личными данными пользователя, историей и бронированием")
+
+    Container(bookingSystem, "Сервис бронирования отелей", "C#", "Сервис для поиска и бронирования отелей")
+    Container(analytics, "Сервис аналитики", "C#", "Сервис для обработки и сбора аналитики")
+    Container(reviews, "Сервис отзывов", "C#", "Сервис размещения, визуалиации и валидации отзывов")
 
     Rel(hotel, extranet, "Посещает", "HTTP")
     Rel(admin, extranet, "Посещает", "HTTP")
@@ -31,7 +32,7 @@ System_Boundary(HotelSettings_container, "Настройки отеля") {
     Rel(guestProfile, bookingSystem, "API вызовы", "REST API")
     
     ' Подписки
-    Container(subscriptionManager, "Система управления подписок", "C#", "Управляет подписками отеля, проводит оплаты и отправляет письма")
+    Container(subscriptionManager, "Сервис управления подписок", "C#", "Управляет подписками отеля, проводит оплаты и отправляет письма")
     Rel(extranet, subscriptionManager, "API вызовы", "REST API")
     Rel(reviews, subscriptionManager, "API вызовы", "REST API")
     Rel(analytics, subscriptionManager, "API вызовы", "REST API")
