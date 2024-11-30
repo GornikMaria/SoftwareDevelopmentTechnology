@@ -68,7 +68,7 @@ System_Boundary(HotelSettings_container, "Настройки отеля") {
 ' Внешние сервисы   
 System_Ext(paymentAPI, "API платежных систем", "Обработка платежей")
 System_Ext(notificationService, "Сервис уведомлений", "Отправка уведомлений пользователям")
-System_Ext(externalAPI, "API внешних сервисов", "Интеграция с картами и другими сервисами")
+System_Ext(externalAPI, "API карт", "Интеграция с картами (Google, Яндекс)")
 
 Rel(extranet, externalAPI, "API вызовы", "REST API")
 Rel(guestProfile, externalAPI, "API вызовы", "REST API")

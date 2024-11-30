@@ -13,7 +13,7 @@ System(bookingSystem, "Система бронирования отелей","Ц
 
 System_Ext(paymentAPI, "API платежных систем", "Обработка платежей")
 System_Ext(notificationService, "Сервис уведомлений", "Отправка уведомлений пользователям")
-System_Ext(externalAPI, "API внешних сервисов", "Интеграция с картами и другими сервисами")
+System_Ext(externalAPI, "API карт", "Интеграция с картами (Google, Яндекс)")
 
 Rel(guest, bookingSystem, "Использует: Поиск отелей, бронирование, управление бронированиями, оставление отзывов")
 Rel(hotel, bookingSystem, "Использует: Добавление информации о номерах, управление бронированиями, ответы на отзывы, управление тарифами")
@@ -21,6 +21,6 @@ Rel(admin, bookingSystem, "Использует: Модерация отзыво
 
 Rel(bookingSystem, notificationService, "Интеграция: Отправка уведомлений о бронированиях и акциях")
 Rel(bookingSystem, paymentAPI, "Интеграция: Обработка платежей за бронирования")
-Rel(bookingSystem, externalAPI, "Интеграция: Доступ к картам и другим внешним сервисам")
+Rel(bookingSystem, externalAPI, "Интеграция: Доступ к картам")
 
 @enduml
