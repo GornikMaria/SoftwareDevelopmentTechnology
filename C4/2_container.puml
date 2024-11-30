@@ -7,6 +7,7 @@ title "Диаграмма компонентов системы брониров
 !include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
 !$ICONURL = "https://raw.githubusercontent.com/tupadr3/plantuml-icon-font-sprites/v3.0.0/icons"
 !include $ICONURL/common.puml
+!include DEVICONS1/redis.puml
 !include DEVICONS2/postgresql.puml
 
 Person(hotel, "Отель", "Управление бронированиями и отзывами")
@@ -15,7 +16,9 @@ Person(guest, "Гость", "Поиск и бронирование отелей
 
 System_Boundary(HotelSettings_container, "Настройки отеля") {
     Container(extranet, "Личный кабинет отеля", "ReactTS", "Веб приложение, отображающее внутренние продукты")
+    Container(extranetService, "Сервис личного кабинета отеля", "C#", "WebAPI приложение, собирающее данные для ЛК отеля")
     Container(guestProfile, "Личный профиль пользователя", "ReactTS", "Веб приложение, занимающееся личными данными пользователя, историей и бронированием")
+    Container(guestProfileService, "Сервис личного кабинета пользователя", "C#", "WebAPI приложение, собирающее данные для ЛК гостя")
 
     Container(reviews, "Сервис отзывов", "C#", "Сервис размещения, визуалиации и валидации отзывов")
     Container(bookingSystem, "Сервис бронирования отелей", "C#", "Сервис для поиска и бронирования отелей")
@@ -24,6 +27,8 @@ System_Boundary(HotelSettings_container, "Настройки отеля") {
     Container(notificationServiceHandler, "Сервис обработки уведомлений", "C#", "Обрабатывает уведомления и взаимодействует с внешним API уведомлений")
     Container(paymentService, "Сервис обработки платежей", "C#", "Обрабатывает платежи и взаимодействует с API платежных систем")
 
+    Container(extranetServiceDb, "db extranet sceheme", "PostgreSQL", "Хранит данные о пользователях", $sprite="postgresql")
+    Container(guestProfileServiceDb, "db guest profile sceheme", "PostgreSQL", "Хранит данные о гостях", $sprite="postgresql")
     Container(reviewsDb, "db reviews sceheme", "PostgreSQL", "Хранит данные об отзывах", $sprite="postgresql")
     Container(bookingSystemDb, "db booking sceheme", "PostgreSQL", "Хранит данные о бронировании", $sprite="postgresql")
     Container(analyticsDb, "db analytics sceheme", "PostgreSQL", "Хранит данные об аналитике", $sprite="postgresql")
@@ -31,8 +36,8 @@ System_Boundary(HotelSettings_container, "Настройки отеля") {
     Container(paymentServiceDb, "db payment sceheme", "PostgreSQL", "Хранит данные о платежных операциях", $sprite="postgresql")
     Container(subscriptionManagerDb, "db subscriptions sceheme", "PostgreSQL", "Хранит данные о подписках", $sprite="postgresql")
 
-    Container(bookingSystemCache, "cache booking sceheme", "Redis", "Кеширует данные о бронировании", $sprite="redis")
-    Container(analyticsCache, "cache analytics sceheme", "Redis", "Кеширует данные об аналитике", $sprite="redis")
+    Container(bookingSystemCache, "cache booking scheme", "Redis", "Кеширует данные о бронировании", $sprite="redis")
+    Container(analyticsCache, "cache analytics scheme", "Redis", "Кеширует данные об аналитике", $sprite="redis")
 
     ContainerDb(rabbit, "Message bus", "RabbitMQ", "Пушит уведомления о происхождении событий")
 }
@@ -47,14 +52,17 @@ together {
     hotel --> extranet : "Посещает", "HTTP"
     admin --> extranet : "Посещает", "HTTP"
     guest --> guestProfile : "Посещает", "HTTP"
+
+    extranet --> extranetService : "API вызовы", "REST API"
+    guestProfile --> guestProfileService : "API вызовы", "REST API"
 }
 
 together {
-    extranet ---> bookingSystem : "API вызовы", "REST API"
-    extranet ---> reviews : "API вызовы", "REST API"
-    extranet ---> analytics : "API вызовы", "REST API"
-    extranet ---> subscriptionManager : "API вызовы", "REST API"
-    guestProfile ---> bookingSystem : "API вызовы", "REST API"
+    extranetService ---> bookingSystem : "API вызовы", "REST API"
+    extranetService ---> reviews : "API вызовы", "REST API"
+    extranetService ---> analytics : "API вызовы", "REST API"
+    extranetService ---> subscriptionManager : "API вызовы", "REST API"
+    guestProfileService ---> bookingSystem : "API вызовы", "REST API"
 }
 
 together {
@@ -67,6 +75,9 @@ together {
 }
 
 together {
+    extranetService -----> extranetServiceDb : "Читает/пишет данные", "SQL/TCP"
+    guestProfileService -----> guestProfileServiceDb : "Читает/пишет данные", "SQL/TCP"
+
     bookingSystem ---> bookingSystemDb : "Читает/пишет данные", "SQL/TCP"
     bookingSystem ---> bookingSystemCache : "Читает/пишет данные", "SQL/TCP"
 
@@ -79,6 +90,8 @@ together {
     subscriptionManager ---> subscriptionManagerDb : "Читает/пишет данные", "SQL/TCP"
 }
 
+Rel(extranetService, rabbit, "Читает/пишет данные", "SQL/TCP")
+Rel(guestProfileService, rabbit, "Читает/пишет данные", "SQL/TCP")
 Rel(notificationServiceHandler, rabbit, "Читает/пишет данные", "SQL/TCP")
 Rel(analytics, rabbit, "Читает/пишет данные", "SQL/TCP")
 Rel(subscriptionManager, rabbit, "Читает/пишет данные", "SQL/TCP")
@@ -86,10 +99,10 @@ Rel(reviews, rabbit, "Читает/пишет данные", "SQL/TCP")
 Rel(bookingSystem, rabbit, "Читает/пишет данные", "SQL/TCP")
 
 together {
-    extranet ----> externalAPI : "API вызовы", "REST API"
-    guestProfile ----> externalAPI : "API вызовы", "REST API"
-    notificationServiceHandler ----> notificationService : "API вызовы", "REST API"
-    paymentService ----> paymentAPI : "API вызовы", "REST API"
+    extranet ------> externalAPI : "API вызовы", "REST API"
+    guestProfile ------> externalAPI : "API вызовы", "REST API"
+    notificationServiceHandler ------> notificationService : "API вызовы", "REST API"
+    paymentService ------> paymentAPI : "API вызовы", "REST API"
 }
 
 ' extranet ---> postgres : "Читает/пишет данные", "SQL/TCP"
