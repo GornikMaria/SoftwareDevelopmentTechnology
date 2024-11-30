@@ -24,8 +24,16 @@ System_Boundary(HotelSettings_container, "Настройки отеля") {
     Container(notificationServiceHandler, "Сервис обработки уведомлений", "C#", "Обрабатывает уведомления и взаимодействует с внешним API уведомлений")
     Container(paymentService, "Сервис обработки платежей", "C#", "Обрабатывает платежи и взаимодействует с API платежных систем")
 
-    ContainerDb(postgres, "Database", "PostgreSQL", "Хранит данные", $sprite="postgresql")
-    ContainerDb(redis, "Database", "Redis", "Кеширует данные", $sprite="redis")
+    Container(reviewsDb, "db reviews sceheme", "PostgreSQL", "Хранит данные об отзывах", $sprite="postgresql")
+    Container(bookingSystemDb, "db booking sceheme", "PostgreSQL", "Хранит данные о бронировании", $sprite="postgresql")
+    Container(analyticsDb, "db analytics sceheme", "PostgreSQL", "Хранит данные об аналитике", $sprite="postgresql")
+    Container(notificationsServiceHandlerDb, "db notifications sceheme", "PostgreSQL", "Хранит данные о бронировании", $sprite="postgresql")
+    Container(paymentServiceDb, "db payment sceheme", "PostgreSQL", "Хранит данные о платежных операциях", $sprite="postgresql")
+    Container(subscriptionManagerDb, "db subscriptions sceheme", "PostgreSQL", "Хранит данные о подписках", $sprite="postgresql")
+
+    Container(bookingSystemCache, "cache booking sceheme", "Redis", "Кеширует данные о бронировании", $sprite="redis")
+    Container(analyticsCache, "cache analytics sceheme", "Redis", "Кеширует данные об аналитике", $sprite="redis")
+
     ContainerDb(rabbit, "Message bus", "RabbitMQ", "Пушит уведомления о происхождении событий")
 }
 
@@ -49,9 +57,6 @@ together {
     guestProfile ---> bookingSystem : "API вызовы", "REST API"
 }
 
-extranet ---> postgres : "Читает/пишет данные", "SQL/TCP"
-guestProfile ---> postgres : "Читает/пишет данные", "SQL/TCP"
-
 together {
     subscriptionManager -right-> paymentService : "API вызовы", "REST API"
     subscriptionManager -right-> notificationServiceHandler : "Отправляет уведомления", "REST API"
@@ -61,25 +66,35 @@ together {
     analytics -left-> subscriptionManager : "API вызовы", "REST API"
 }
 
-analytics ---> postgres : "Читает/пишет данные", "SQL/TCP"
-reviews ---> postgres : "Читает/пишет данные", "SQL/TCP"
-analytics ---> redis : "Читает/пишет данные", "SQL/TCP"
-bookingSystem ---> redis : "Читает/пишет данные", "SQL/TCP"
-bookingSystem ---> postgres : "Читает/пишет данные", "SQL/TCP"
-
-notificationServiceHandler ---> rabbit : "Читает/пишет данные", "SQL/TCP"
-analytics ---> rabbit : "Читает/пишет данные", "SQL/TCP"
-subscriptionManager ---> rabbit : "Читает/пишет данные", "SQL/TCP"
-reviews ---> rabbit : "Читает/пишет данные", "SQL/TCP"
-bookingSystem ---> rabbit : "Читает/пишет данные", "SQL/TCP"
-
 together {
-    notificationServiceHandler ----> notificationService : "API вызовы", "REST API"
-    paymentService ----> paymentAPI : "API вызовы", "REST API"
-    extranet ----> externalAPI : "API вызовы", "REST API"
-    guestProfile ----> externalAPI : "API вызовы", "REST API"
+    bookingSystem ---> bookingSystemDb : "Читает/пишет данные", "SQL/TCP"
+    bookingSystem ---> bookingSystemCache : "Читает/пишет данные", "SQL/TCP"
+
+    analytics ---> analyticsDb : "Читает/пишет данные", "SQL/TCP"
+    analytics ---> analyticsCache : "Читает/пишет данные", "SQL/TCP"
+    
+    reviews ---> reviewsDb : "Читает/пишет данные", "SQL/TCP"
+    notificationServiceHandler ---> notificationsServiceHandlerDb : "Читает/пишет данные", "SQL/TCP"
+    paymentService ---> paymentServiceDb : "Читает/пишет данные", "SQL/TCP"
+    subscriptionManager ---> subscriptionManagerDb : "Читает/пишет данные", "SQL/TCP"
 }
 
+Rel(notificationServiceHandler, rabbit, "Читает/пишет данные", "SQL/TCP")
+Rel(analytics, rabbit, "Читает/пишет данные", "SQL/TCP")
+Rel(subscriptionManager, rabbit, "Читает/пишет данные", "SQL/TCP")
+Rel(reviews, rabbit, "Читает/пишет данные", "SQL/TCP")
+Rel(bookingSystem, rabbit, "Читает/пишет данные", "SQL/TCP")
+
+together {
+    extranet ----> externalAPI : "API вызовы", "REST API"
+    guestProfile ----> externalAPI : "API вызовы", "REST API"
+    notificationServiceHandler ----> notificationService : "API вызовы", "REST API"
+    paymentService ----> paymentAPI : "API вызовы", "REST API"
+}
+
+' extranet ---> postgres : "Читает/пишет данные", "SQL/TCP"
+' guestProfile ---> postgres : "Читает/пишет данные", "SQL/TCP"
 ' analytics --> rabbit : "Использует"
 ' bookingSystem --> rabbit : "Использует"
+
 @enduml
