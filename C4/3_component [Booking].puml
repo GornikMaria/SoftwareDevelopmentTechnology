@@ -26,37 +26,58 @@ guest --> guestProfile : "Посещает"
 guestProfile --> guestProfileService : "API вызовы", "REST API"
 
 Container_Boundary(bookingService_container, "Сервис Бронирования") {
-    Component(bookingController, "Контроллер Бронирования", "C#", "Позволяет пользователям управлять бронированиями")
-    Component(bookingEngine, "Модуль Бронирования", "C#", "Обрабатывает процесс бронирования, поиск доступности, создание бронирований и т.д.")
-    Component(reservationManager, "Менеджер Бронирований", "C#", "Управляет существующими бронированиями: изменения, отмены, подтверждения")
+    ' Hotel
+    Component(roomManagementController, "Контроллер доступоности номеров", "C#", "Позволяет управлять номерами")
+    Component(ratePlansController, "Контроллер управления тарифами, скидками и акциями", "C#", "Позволяет добавлять, удалять и изменять тарифы, акции и скидки")
+
+    ' Guest
+    Component(bookingController, "Контроллер Бронирования", "C#", "Позволяет пользователям создавать и изменять бронирования")
+
+    ' Internal services
+        'Rate plans
+        Component(ratePlansManager, "Модуль управления тарифами", "C#", "Позволяет создавать, редактировать и удалять тарифы")
+
+        ' Rooms
+        Component(roomAvailabilityManager, "Модуль управления доступностью номеров", "C#", "Обрабатывает кейсы изменения доступности номеров")
+        Component(roomManager, "Модуль управления номерами", "C#", "Позволяет создавать, удалять и редактировать номера")
+
+        ' Booking
+        Component(bookingEngine, "Модуль Бронирования", "C#", "Обрабатывает процесс бронирования, поиск доступности, создание бронирований и т.д.")
+        Component(reservationManager, "Менеджер Бронирований", "C#", "Управляет существующими бронированиями: изменения, отмены, подтверждения")
 }
 
+extranetService --> ratePlansController : "Делает API запросы к контроллеру тарифов", "JSON/HTTPS"
+extranetService --> roomManagementController : "Делает API запросы к контроллеру комнат", "JSON/HTTPS"
+guestProfileService --> bookingController : "Делает API запросы к контроллеру бронирований", "JSON/HTTPS" 
+
+' External services
 together {
     Container(notificationServiceFacade, "Сервис обработки уведомлений", "C#", "Обрабатывает уведомления и взаимодействует с внешним API уведомлений")
     Container(paymentAPIFacade, "Сервис обработки платежей", "C#", "Обрабатывает платежи и взаимодействует с API платежных систем")
 }
 
-together {
+' Content
+    ' Rate plans
+    ratePlansController --> ratePlansManager : "Обрабатывает запросы тарифов"
+
+    ' Rooms 
+    roomManagementController --> roomAvailabilityManager : "Обрабатывает запросы доступности номеров"
+    roomManagementController --> roomManager : "Обрабатывает запросы изменения номеров"
+
+    ' Booking
+    bookingController --> bookingEngine : "Обрабатывает запросы бронирования"
+    bookingController --> reservationManager : "Управляет бронированиями"
+
+rectangle "Dependencies" as dependencies {
     ContainerDb(postgres, "db booking sceheme", "PostgreSQL", "Хранит информацию о пользователях, бронированиях, отзывах и другую информацию", $sprite="postgresql")
     ContainerDb(redis, "cache booking scheme", "Redis", "Кеширует информацию о поисковых операциях", $sprite="redis")
     ContainerDb(rabbit, "Message bus", "RabbitMQ", "Пушит уведомления о происхождении событий")
 }
 
-extranetService --> bookingController : "Делает API запросы к контроллеру бронирований", "JSON/HTTPS"
-guestProfileService --> bookingController : "Делает API запросы к контроллеру бронирований", "JSON/HTTPS" 
+bookingService_container --> dependencies : "Использует"
 
-bookingController --> bookingEngine : "Обрабатывает запросы бронирования"
-bookingController --> reservationManager : "Управляет бронированиями"
-
-together {
-    bookingEngine ---> rabbit : "Публикует события бронирования"
-    reservationManager ---> rabbit : "Публикует события управления бронированиями"
-    bookingEngine ---> postgres : "Читает из и записывает в", "SQL/TCP"
-    reservationManager ---> postgres : "Читает из и записывает в", "SQL/TCP"
-    bookingEngine ---> redis : "Читает из и записывает в", "SQL/TCP"
-    reservationManager ---> redis : "Читает из и записывает в", "SQL/TCP"
-}
-
+ratePlansManager --> notificationServiceFacade : "Инициирует уведомления"
+roomAvailabilityManager --> notificationServiceFacade : "Инициирует уведомления"
 bookingEngine --> notificationServiceFacade : "Инициирует уведомления"
 bookingEngine --> paymentAPIFacade : "Инициирует платежи"
 reservationManager --> notificationServiceFacade : "Инициирует уведомления"
