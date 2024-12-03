@@ -2,38 +2,74 @@
 !define C4P https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master
 !includeurl C4P/C4_Container.puml
 
-title C4 Deployment Diagram -
-Person(guest, "Гость", "Поиск и бронирование отелей")
-Person(hotel, "Отель", "Управление бронированиями и отзывами")
-Person(admin, "Администратор", "Модерация отзывов и управление системой")
+title C4 Infrastructure Diagram - Система обмена валют
 
+package "Облачная платформа" as cloud {
+    Container(nginx, "Nginx", "Nginx", "Обратный прокси и балансировщик нагрузки")
 
-package "Платформа" as cloud {
-  Container(aplication, "aplication", "c4", "aplication")
-  Rel(guest, aplication, "Использует: Поиск отелей, бронирование, управление бронированиями, оставление отзывов")
-  Rel(hotel, aplication, "Использует: Добавление информации о номерах, управление бронированиями, ответы на отзывы, управление тарифами")
-  Rel(admin, aplication, "Использует: Модерация отзывов, управление списком отелей, аналитика")
-  package "Приложения" as k8s_cluster {
-    package "Приложения 1" as currency_pod {
-      Container(service, "Service", "C#t", "Сервис")
+    package "Kubernetes Cluster" as k8s_cluster {
+        package "Сервис отзывов" as reviews_pod {
+            Container(reviews, "Сервис отзывов", "C#", "Сервис размещения, визуалиации и валидации отзывов")
+        }
+
+        package "Сервис бронирования отелей" as bookingSystem_pod {
+          Container(bookingSystem, "Сервис бронирования отелей", "C#", "Сервис для поиска и бронирования отелей")
+        }
+
+        package "Сервис управления подписок" as subscriptionManager_pod {
+          Container(subscriptionManager, "Сервис управления подписок", "C#", "Управляет подписками отеля, проводит оплаты и отправляет письма")
+        }
+
+        package "Сервис аналитики" as analytics_pod {
+          Container(analytics, "Сервис аналитики", "C#", "Сервис для обработки и сбора аналитики")
+        }
+
+        package "Сервис обработки уведомлений" as notificationServiceHandler_pod {
+          Container(notificationServiceHandler, "Сервис обработки уведомлений", "C#", "Обрабатывает уведомления и взаимодействует с внешним API уведомлений")
+        }
+
+        package "Сервис обработки платежей" as paymentService_pod {
+          Container(paymentService, "Сервис обработки платежей", "C#", "Обрабатывает платежи и взаимодействует с API платежных систем")
+        }
+
+        package "Сервис личного кабинета пользователя" as guestProfileService_pod {
+          Container(guestProfileService, "Сервис личного кабинета пользователя", "C#", "WebAPI приложение, собирающее данные для ЛК гостя")
+        }
+
+        package "Сервис личного кабинета отеля" as extranetService_pod {
+          Container(extranetService, "Сервис личного кабинета отеля", "C#", "WebAPI приложение, собирающее данные для ЛК отеля")
+        }
     }
-    package "Приложения 2" as currency_pod {
-      Container(service2, "Service", "C#t", "Сервис")
-    }
-  }
 
-  Container(RabbitMQ, "Message Broker", "RabbitMQ", "Асинхронная обработка событий")
+    ContainerDb(rabbit, "Message bus", "RabbitMQ", "Пушит уведомления о происхождении событий")
 }
 
 package "Database Cluster" as db_cluster {
+    package "Region 1" as region1 {
+        Container(db_r1_master, "PostgreSQL Master", "PostgreSQL", "Основная база данных для региона 1")
+        Container(db_r1_replica, "PostgreSQL Replica", "PostgreSQL", "Реплика базы данных для региона 1")
+    }
+
+    package "Region n" as regionn {
+        Container(db_rn_master, "PostgreSQL Master", "PostgreSQL", "Основная база данных для региона n")
+        Container(db_rn_replica, "PostgreSQL Replica", "PostgreSQL", "Реплика базы данных для региона n")
+    }
 }
 
-System_Ext(services, "Сервисы сторонние")
+System_Ext(payment_system, "Платежная система", "Payment API")
+System_Ext(financial_api, "Финансовый API", "ЦБ API")
+System_Ext(notification_service, "Сервис уведомлений", "Email API")
 
 ' Соединения между компонентами
-Rel(aplication, db_cluster, "Запросы", "SQL")
+Rel(nginx, k8s_cluster, "Проксирование запросов", "HTTP")
+Rel(k8s_cluster, db_cluster, "Чтение/Запись данных", "JDBC")
+Rel(k8s_cluster, RabbitMQ, "Публикация событий", "KaRabbitMQfka Producer API")
 
+Rel_D(db_r1_master, db_r1_replica, "Репликация", "Streaming")
+Rel_D(db_rn_master, db_rn_replica, "Репликация", "Streaming")
 
-Rel(RabbitMQ, services, "Отправка уведомлений", "REST API")
+Rel(currency_service, financial_api, "Получение курсов валют", "REST API")
+Rel(api_service, payment_system, "Обработка платежей", "REST API")
+Rel(RabbitMQ, notification_service, "Отправка уведомлений", "REST API")
 
 @enduml
