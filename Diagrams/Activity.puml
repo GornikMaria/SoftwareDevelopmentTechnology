@@ -1,23 +1,40 @@
 @startuml
 start
 
-:Search for Rooms;
-:Select Room;
-:Enter Guest Details;
-:Choose Payment Method;
+:Регистрация в системе;
+:Создание профиля;
 
-if (Payment Method) then (Online)
-  :Process Online Payment;
-  if (Payment Successful?) then (yes)
-    :Confirm Booking;
-    :Send Confirmation Email;
-  else (no)
-    :Display Payment Error;
+:Поиск отелей;
+:Фильтрация по параметрам;
+:Выбор отеля;
+
+:Просмотр информации о номерах;
+:Проверка наличия и цен;
+
+:Выбор номера;
+:Выбор опции оплаты;
+
+if (Опция оплаты) then (Предоплата)
+  :Процесс предоплаты;
+  if (Оплата успешна?) then (да)
+    :Подтверждение бронирования;
+    :Отправка подтверждения по email;
+  else (нет)
+    :Отображение ошибки оплаты;
   endif
-else (On Location)
-  :Book Room, Pay on Arrival;
-  :Send Booking Confirmation;
+else (Оплата на месте)
+  :Бронирование номера с оплатой на месте;
+  :Отправка подтверждения бронирования;
 endif
+
+:Прибытие в отель;
+:Заселение;
+
+:Проживание в отеле;
+:Выезд из отеля;
+
+:Оставление отзыва;
+:Получение ответа от отеля;
 
 stop
 @enduml
