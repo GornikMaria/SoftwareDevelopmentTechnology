@@ -1,0 +1,39 @@
+@startuml
+!define C4P https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master
+!includeurl C4P/C4_Container.puml
+
+title C4 Deployment Diagram -
+Person(guest, "Гость", "Поиск и бронирование отелей")
+Person(hotel, "Отель", "Управление бронированиями и отзывами")
+Person(admin, "Администратор", "Модерация отзывов и управление системой")
+
+
+package "Платформа" as cloud {
+  Container(aplication, "aplication", "c4", "aplication")
+  Rel(guest, aplication, "Использует: Поиск отелей, бронирование, управление бронированиями, оставление отзывов")
+  Rel(hotel, aplication, "Использует: Добавление информации о номерах, управление бронированиями, ответы на отзывы, управление тарифами")
+  Rel(admin, aplication, "Использует: Модерация отзывов, управление списком отелей, аналитика")
+  package "Приложения" as k8s_cluster {
+    package "Приложения 1" as currency_pod {
+      Container(service, "Service", "C#t", "Сервис")
+    }
+    package "Приложения 2" as currency_pod {
+      Container(service2, "Service", "C#t", "Сервис")
+    }
+  }
+
+  Container(RabbitMQ, "Message Broker", "RabbitMQ", "Асинхронная обработка событий")
+}
+
+package "Database Cluster" as db_cluster {
+}
+
+System_Ext(services, "Сервисы сторонние")
+
+' Соединения между компонентами
+Rel(aplication, db_cluster, "Запросы", "SQL")
+
+
+Rel(RabbitMQ, services, "Отправка уведомлений", "REST API")
+
+@enduml
