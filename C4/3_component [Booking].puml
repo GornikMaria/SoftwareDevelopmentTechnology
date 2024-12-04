@@ -45,6 +45,7 @@ Container_Boundary(bookingService_container, "Сервис Бронирован�
         Component(bookingEngine, "Модуль Бронирования", "C#", "Обрабатывает процесс бронирования, поиск доступности, создание бронирований и т.д.")
         Component(reservationManager, "Менеджер Бронирований", "C#", "Управляет существующими бронированиями: изменения, отмены, подтверждения")
 }
+ContainerDb(rabbit, "Message bus", "RabbitMQ", "Пушит уведомления о происхождении событий")
 
 extranetService --> ratePlansController : "Делает API запросы к контроллеру тарифов", "JSON/HTTPS"
 extranetService --> roomManagementController : "Делает API запросы к контроллеру комнат", "JSON/HTTPS"
@@ -71,16 +72,16 @@ together {
 rectangle "Dependencies" as dependencies {
     ContainerDb(postgres, "db booking sceheme", "PostgreSQL", "Хранит информацию о пользователях, бронированиях, отзывах и другую информацию", $sprite="postgresql")
     ContainerDb(redis, "cache booking scheme", "Redis", "Кеширует информацию о поисковых операциях", $sprite="redis")
-    ContainerDb(rabbit, "Message bus", "RabbitMQ", "Пушит уведомления о происхождении событий")
 }
 
 bookingService_container --> dependencies : "Использует"
 
-ratePlansManager --> notificationServiceFacade : "Инициирует уведомления"
-roomAvailabilityManager --> notificationServiceFacade : "Инициирует уведомления"
-bookingEngine --> notificationServiceFacade : "Инициирует уведомления"
-bookingEngine --> paymentAPIFacade : "Инициирует платежи"
-reservationManager --> notificationServiceFacade : "Инициирует уведомления"
-reservationManager --> paymentAPIFacade : "Управляет возвратами и отменами"
+ratePlansManager --> rabbit : "Получает и пушит события"
+roomAvailabilityManager --> rabbit : "Получает и пушит события"
+bookingEngine --> rabbit : "Получает и пушит события"
+reservationManager -->  rabbit : "Получает и пушит события"
+
+rabbit --> notificationServiceFacade : "Инициирует уведомления"
+rabbit --> paymentAPIFacade : "Инициирует платежи"
 
 @enduml

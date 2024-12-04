@@ -20,6 +20,8 @@ System_Boundary(HotelSettings_container, "Настройки отеля") {
     Container(guestProfile, "Личный профиль пользователя", "ReactTS", "Веб приложение, занимающееся личными данными пользователя, историей и бронированием")
     Container(guestProfileService, "Сервис личного кабинета пользователя", "C#", "WebAPI приложение, собирающее данные для ЛК гостя")
 
+    ContainerDb(rabbit, "Message bus", "RabbitMQ", "Пушит уведомления о происхождении событий")
+
     Container(reviews, "Сервис отзывов", "C#", "Сервис размещения, визуалиации и валидации отзывов")
     Container(bookingSystem, "Сервис бронирования отелей", "C#", "Сервис для поиска и бронирования отелей")
     Container(subscriptionManager, "Сервис управления подписок", "C#", "Управляет подписками отеля, проводит оплаты и отправляет письма")
@@ -38,8 +40,6 @@ System_Boundary(HotelSettings_container, "Настройки отеля") {
 
     Container(bookingSystemCache, "cache booking scheme", "Redis", "Кеширует данные о бронировании", $sprite="redis")
     Container(analyticsCache, "cache analytics scheme", "Redis", "Кеширует данные об аналитике", $sprite="redis")
-
-    ContainerDb(rabbit, "Message bus", "RabbitMQ", "Пушит уведомления о происхождении событий")
 }
 
 together {
@@ -61,17 +61,7 @@ together {
     extranetService ---> bookingSystem : "API вызовы", "REST API"
     extranetService ---> reviews : "API вызовы", "REST API"
     extranetService ---> analytics : "API вызовы", "REST API"
-    extranetService ---> subscriptionManager : "API вызовы", "REST API"
     guestProfileService ---> bookingSystem : "API вызовы", "REST API"
-}
-
-together {
-    subscriptionManager -right-> paymentService : "API вызовы", "REST API"
-    subscriptionManager -right-> notificationServiceHandler : "Отправляет уведомления", "REST API"
-    bookingSystem -right-> paymentService : "API вызовы", "REST API"
-    bookingSystem -right-> notificationServiceHandler : "Отправляет уведомления", "REST API"
-    reviews -right-> subscriptionManager : "API вызовы", "REST API"
-    analytics -left-> subscriptionManager : "API вызовы", "REST API"
 }
 
 together {
@@ -90,24 +80,18 @@ together {
     subscriptionManager ---> subscriptionManagerDb : "Читает/пишет данные", "SQL/TCP"
 }
 
-Rel(extranetService, rabbit, "Читает/пишет данные", "SQL/TCP")
-Rel(guestProfileService, rabbit, "Читает/пишет данные", "SQL/TCP")
-Rel(notificationServiceHandler, rabbit, "Читает/пишет данные", "SQL/TCP")
-Rel(analytics, rabbit, "Читает/пишет данные", "SQL/TCP")
-Rel(subscriptionManager, rabbit, "Читает/пишет данные", "SQL/TCP")
-Rel(reviews, rabbit, "Читает/пишет данные", "SQL/TCP")
-Rel(bookingSystem, rabbit, "Читает/пишет данные", "SQL/TCP")
+Rel(extranetService, rabbit, "API вызовы", "REST API")
+Rel(guestProfileService, rabbit, "API вызовы", "REST API")
+Rel(notificationServiceHandler, rabbit, "API вызовы", "REST API")
+Rel(analytics, rabbit, "API вызовы", "REST API")
+Rel(subscriptionManager, rabbit, "API вызовы", "REST API")
+Rel(reviews, rabbit, "API вызовы", "REST API")
+Rel(bookingSystem, rabbit, "API вызовы", "REST API")
+Rel(paymentService, rabbit, "API вызовы", "REST API")
 
-together {
-    extranet ------> externalAPI : "API вызовы", "REST API"
-    guestProfile ------> externalAPI : "API вызовы", "REST API"
-    notificationServiceHandler ------> notificationService : "API вызовы", "REST API"
-    paymentService ------> paymentAPI : "API вызовы", "REST API"
-}
-
-' extranet ---> postgres : "Читает/пишет данные", "SQL/TCP"
-' guestProfile ---> postgres : "Читает/пишет данные", "SQL/TCP"
-' analytics --> rabbit : "Использует"
-' bookingSystem --> rabbit : "Использует"
+Rel(extranet, externalAPI, "API вызовы", "REST API")
+Rel(guestProfile, externalAPI, "API вызовы", "REST API")
+Rel(notificationServiceHandler, notificationService, "API вызовы", "REST API")
+Rel(paymentService, paymentAPI, "API вызовы", "REST API")
 
 @enduml
