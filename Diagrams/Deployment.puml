@@ -79,9 +79,9 @@ package "Облачный сервер" as cloudServer {
   }
 }
 
-monitoring -up-> db_cluster : "Опрашивает", "RestAPI"
-monitoring -up-> k8s_front_cluster : "Опрашивает", "RestAPI"
-monitoring -up-> k8s_cluster : "Опрашивает", "RestAPI"
+monitoring --> db_cluster : "Опрашивает", "RestAPI"
+monitoring -left-> k8s_front_cluster : "Опрашивает", "RestAPI"
+monitoring -left-> k8s_cluster : "Опрашивает", "RestAPI"
 
 together {
   System_Ext(payment_system, "Платежная система", "Payment API")
@@ -97,9 +97,15 @@ Rel(k8s_cluster, rabbit, "Публикация событий", "KaRabbitMQfka P
 Rel_D(db_r1_master, db_r1_replica, "Репликация", "Streaming")
 Rel_D(db_rn_master, db_rn_replica, "Репликация", "Streaming")
 
-guestProfile -right-> mapsApi : "Интеграция с картами", "REST API")
-extranet -right-> mapsApi : "Интеграция с картами", "REST API")
-paymentService -right-> payment_system : "Обработка платежей", "REST API")
-notificationServiceHandler -right-> notification_service : "Отправка уведомлений", "REST API"
+guestProfile --down-> mapsApi : "Интеграция с картами", "REST API")
+extranet --down-> mapsApi : "Интеграция с картами", "REST API")
+paymentService --down-> payment_system : "Обработка платежей", "REST API")
+notificationServiceHandler --down-> notification_service : "Отправка уведомлений", "REST API"
+
+package "Бекап сервер" as serverBackups {
+  Container(backupsStorage, "Хранилище резервных копий", "File storage", "Содержит множество бекапов для БД сервисов")
+}
+
+Rel(backupsStorage, db_cluster, "Получает бекапы БД")
 
 @enduml
