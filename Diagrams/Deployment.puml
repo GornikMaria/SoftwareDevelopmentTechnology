@@ -4,10 +4,39 @@
 
 title C4 Infrastructure Diagram - Система обмена валют
 
-package "Облачная платформа" as cloud {
-    Container(nginx, "Nginx", "Nginx", "Обратный прокси и балансировщик нагрузки")
+together {
+  Person(guest, "Гость", "Поиск и бронирование отелей")
+  Person(hotel, "Отель", "Управление бронированиями и отзывами")
+  Person(admin, "Администратор", "Модерация отзывов и управление системой")
+}
+
+
+package "Сервер" as mainServer {
+    package "Kubernetis Cluster - personal accounts" as k8s_front_cluster {
+        package "Личный кабинет пользователя" as guestProfile_pod {
+          Container(guestProfile, "Личный кабинет пользователя", "ReactTS", "WebAPI приложение, собирающее данные для ЛК гостя")
+        }
+        package "Сервис личного кабинета пользователя" as guestProfileService_pod {
+          Container(guestProfileService, "Сервис личного кабинета пользователя", "C#", "WebAPI приложение, собирающее данные для ЛК гостя")
+        }
+
+        package "Личный кабинет отеля" as extranet_pod {
+          Container(extranet, "Личный кабинет отеля", "ReactTS", "WebAPI приложение, собирающее данные для ЛК отеля")
+        }
+        package "Сервис личного кабинета отеля" as extranetService_pod {
+          Container(extranetService, "Сервис личного кабинета отеля", "C#", "WebAPI приложение, собирающее данные для ЛК отеля")
+        }
+    }
 
     package "Kubernetes Cluster" as k8s_cluster {
+        package "Сервис обработки платежей" as paymentService_pod {
+          Container(paymentService, "Сервис обработки платежей", "C#", "Обрабатывает платежи и взаимодействует с API платежных систем")
+        }
+
+        package "Сервис обработки уведомлений" as notificationServiceHandler_pod {
+          Container(notificationServiceHandler, "Сервис обработки уведомлений", "C#", "Обрабатывает уведомления и взаимодействует с внешним API уведомлений")
+        }
+        
         package "Сервис отзывов" as reviews_pod {
             Container(reviews, "Сервис отзывов", "C#", "Сервис размещения, визуалиации и валидации отзывов")
         }
@@ -23,26 +52,14 @@ package "Облачная платформа" as cloud {
         package "Сервис аналитики" as analytics_pod {
           Container(analytics, "Сервис аналитики", "C#", "Сервис для обработки и сбора аналитики")
         }
-
-        package "Сервис обработки уведомлений" as notificationServiceHandler_pod {
-          Container(notificationServiceHandler, "Сервис обработки уведомлений", "C#", "Обрабатывает уведомления и взаимодействует с внешним API уведомлений")
-        }
-
-        package "Сервис обработки платежей" as paymentService_pod {
-          Container(paymentService, "Сервис обработки платежей", "C#", "Обрабатывает платежи и взаимодействует с API платежных систем")
-        }
-
-        package "Сервис личного кабинета пользователя" as guestProfileService_pod {
-          Container(guestProfileService, "Сервис личного кабинета пользователя", "C#", "WebAPI приложение, собирающее данные для ЛК гостя")
-        }
-
-        package "Сервис личного кабинета отеля" as extranetService_pod {
-          Container(extranetService, "Сервис личного кабинета отеля", "C#", "WebAPI приложение, собирающее данные для ЛК отеля")
-        }
     }
 
     ContainerDb(rabbit, "Message bus", "RabbitMQ", "Пушит уведомления о происхождении событий")
 }
+
+Rel(guest, guestProfile, "Посещает", "HTTP")
+Rel(admin, extranet, "Посещает", "HTTP")
+Rel(hotel, extranet, "Посещает", "HTTP")
 
 package "Database Cluster" as db_cluster {
     package "Region 1" as region1 {
@@ -56,20 +73,33 @@ package "Database Cluster" as db_cluster {
     }
 }
 
-System_Ext(payment_system, "Платежная система", "Payment API")
-System_Ext(financial_api, "Финансовый API", "ЦБ API")
-System_Ext(notification_service, "Сервис уведомлений", "Email API")
+package "Облачный сервер" as cloudServer {
+  package "Мониторинг" as monitoring_pod {
+    Container(monitoring, "Мониторинг", "Zabbix", "Проверяет доступоность компонентов + приложения настраивают критерии работоспособности")
+  }
+}
+
+monitoring -up-> db_cluster : "Опрашивает", "RestAPI"
+monitoring -up-> k8s_front_cluster : "Опрашивает", "RestAPI"
+monitoring -up-> k8s_cluster : "Опрашивает", "RestAPI"
+
+together {
+  System_Ext(payment_system, "Платежная система", "Payment API")
+  System_Ext(mapsApi, "API карт", "Maps API")
+  System_Ext(notification_service, "Сервис уведомлений", "Email API")
+}
 
 ' Соединения между компонентами
-Rel(nginx, k8s_cluster, "Проксирование запросов", "HTTP")
+Rel(k8s_front_cluster, k8s_cluster, "Использует", "RestAPI")
 Rel(k8s_cluster, db_cluster, "Чтение/Запись данных", "JDBC")
-Rel(k8s_cluster, RabbitMQ, "Публикация событий", "KaRabbitMQfka Producer API")
+Rel(k8s_cluster, rabbit, "Публикация событий", "KaRabbitMQfka Producer API")
 
 Rel_D(db_r1_master, db_r1_replica, "Репликация", "Streaming")
 Rel_D(db_rn_master, db_rn_replica, "Репликация", "Streaming")
 
-Rel(currency_service, financial_api, "Получение курсов валют", "REST API")
-Rel(api_service, payment_system, "Обработка платежей", "REST API")
-Rel(RabbitMQ, notification_service, "Отправка уведомлений", "REST API")
+guestProfile -right-> mapsApi : "Интеграция с картами", "REST API")
+extranet -right-> mapsApi : "Интеграция с картами", "REST API")
+paymentService -right-> payment_system : "Обработка платежей", "REST API")
+notificationServiceHandler -right-> notification_service : "Отправка уведомлений", "REST API"
 
 @enduml
