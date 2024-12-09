@@ -80,6 +80,7 @@ together {
     subscriptionManager ---> subscriptionManagerDb : "Читает/пишет данные", "SQL/TCP"
 }
 
+
 Rel(extranetService, rabbit, "API вызовы", "REST API")
 Rel(guestProfileService, rabbit, "API вызовы", "REST API")
 Rel(notificationServiceHandler, rabbit, "API вызовы", "REST API")

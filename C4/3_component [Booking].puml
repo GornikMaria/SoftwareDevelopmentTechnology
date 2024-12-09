@@ -73,7 +73,6 @@ rectangle "Dependencies" as dependencies {
     ContainerDb(postgres, "db booking sceheme", "PostgreSQL", "Хранит информацию о пользователях, бронированиях, отзывах и другую информацию", $sprite="postgresql")
     ContainerDb(redis, "cache booking scheme", "Redis", "Кеширует информацию о поисковых операциях", $sprite="redis")
 }
-
 bookingService_container --> dependencies : "Использует"
 
 ratePlansManager --> rabbit : "Получает и пушит события"
